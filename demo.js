@@ -29,7 +29,6 @@ function getKey() {
   let senderPrivateKeyArmored = fs.readFileSync(senderPrivateKeyPath, 'utf8');
   let receiverPublicKeyArmored = fs.readFileSync(receiverPublicKeyPath, 'utf8');
   let receiverPrivateKeyArmored = fs.readFileSync(receiverPrivateKeyPath, 'utf8');
-  console.log(senderPublicKeyArmored)
   return { 
     senderPublicKeyArmored, senderPrivateKeyArmored, receiverPublicKeyArmored, receiverPrivateKeyArmored
   }
@@ -87,12 +86,13 @@ async function receiverDecrypt(encrypted, receiverPrivateKey, senderPublicKey) {
   // Step2 : Encrypt and Decrypt.
   // Sender encrypt.
   let message = "Hello, World!";
+  console.log(`message: ${message}`)
   let encrypted = await senderEncrypt(
     message,
     senderPrivateKey,
     receiverPublicKey
   );
-  console.log("encrypted message");
+  console.log("encrypted message:");
   console.log(encrypted); // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
 
   // Receiver decrypt.
