@@ -1,7 +1,39 @@
 const openpgp = require("openpgp"); // use as CommonJS, AMD, ES6 module or via window.openpgp
+const fs = require('fs');
 
-const senderKeyPair = require("./a.key");
-const receiverKeyPair = require("./b.key");
+const argv = require('minimist')(process.argv.slice(2));
+if (!argv.sender_public_key) {
+  console.warn("Missing sender_public_key. Please provide the necessary command line argument.");
+  process.exit(1);
+}
+if (!argv.sender_private_key) {
+  console.warn("Missing sender_private_key. Please provide the necessary command line argument.");
+  process.exit(1);
+}
+if (!argv.receiver_public_key) {
+  console.warn("Missing receiver_public_key. Please provide the necessary command line argument.");
+  process.exit(1);
+}
+if (!argv.receiver_private_key) {
+  console.warn("Missing receiver_private_key. Please provide the necessary command line argument.");
+  process.exit(1);
+}
+
+function getKey() {
+  const senderPublicKeyPath = argv.sender_public_key;
+  const senderPrivateKeyPath = argv.sender_private_key;
+  const receiverPublicKeyPath = argv.receiver_public_key;
+  const receiverPrivateKeyPath = argv.receiver_private_key;
+  
+  let senderPublicKeyArmored = fs.readFileSync(senderPublicKeyPath, 'utf8');
+  let senderPrivateKeyArmored = fs.readFileSync(senderPrivateKeyPath, 'utf8');
+  let receiverPublicKeyArmored = fs.readFileSync(receiverPublicKeyPath, 'utf8');
+  let receiverPrivateKeyArmored = fs.readFileSync(receiverPrivateKeyPath, 'utf8');
+  console.log(senderPublicKeyArmored)
+  return { 
+    senderPublicKeyArmored, senderPrivateKeyArmored, receiverPublicKeyArmored, receiverPrivateKeyArmored
+  }
+}
 
 async function senderEncrypt(message, senderPrivateKey, receiverPublicKey) {
   const encrypted = await openpgp.encrypt({
@@ -26,32 +58,33 @@ async function receiverDecrypt(encrypted, receiverPrivateKey, senderPublicKey) {
 }
 
 (async () => {
-  // what the private key is encrypted with
+  // Step1 : prepare public/private key of the sender/receiver. 
+  let {senderPublicKeyArmored, senderPrivateKeyArmored, receiverPublicKeyArmored, receiverPrivateKeyArmored} = getKey()
   let senderPassphrase = `super long and hard to guess secret`;
   let receiverPassphrase = `super long and hard to guess secret`;
 
-  // Get a,b public and private key.
+  // Get sender public and private key.
   const senderPublicKey = await openpgp.readKey({
-    armoredKey: senderKeyPair.publicKeyArmored,
+    armoredKey: senderPublicKeyArmored,
   });
-
   const senderPrivateKey = await openpgp.decryptKey({
     privateKey: await openpgp.readPrivateKey({
-      armoredKey: senderKeyPair.privateKeyArmored,
+      armoredKey: senderPrivateKeyArmored,
     }),
     passphrase: senderPassphrase,
   });
+  // Get receiver public and private key.
   const receiverPublicKey = await openpgp.readKey({
-    armoredKey: receiverKeyPair.publicKeyArmored,
+    armoredKey: receiverPublicKeyArmored,
   });
-
   const receiverPrivateKey = await openpgp.decryptKey({
     privateKey: await openpgp.readPrivateKey({
-      armoredKey: receiverKeyPair.privateKeyArmored,
+      armoredKey: receiverPrivateKeyArmored,
     }),
     passphrase: receiverPassphrase,
   });
 
+  // Step2 : Encrypt and Decrypt.
   // Sender encrypt.
   let message = "Hello, World!";
   let encrypted = await senderEncrypt(
